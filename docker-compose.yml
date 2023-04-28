@@ -1,0 +1,84 @@
+version: '3.9'
+
+# https://adithya.dev/docker-secrets-with-mysql-in-docker-compose/
+# https://docs.docker.com/compose/environment-variables/
+# https://stackoverflow.com/a/42251266
+# https://stackoverflow.com/a/71771542
+
+services:
+  mysql:
+    container_name: rc_mysql
+    image: mysql:8.0.29
+    restart: always
+    environment:
+      MYSQL_DATABASE: awb
+      MYSQL_USER: animewallpaperbot
+      MYSQL_PASSWORD: ${MYSQL_PASS?err}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASS?err}
+    volumes:
+      - mysql:/var/lib/mysql
+    ports:
+      - "3307:3306"
+    networks:
+      - rc
+
+  rabbitmq:
+    container_name: rc_rabbitmq
+    image: rabbitmq:3.11-management
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: animewallpaperbot
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS?err}
+    ports:
+      - "5673:5672"
+      - "15673:15672"
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq
+    networks:
+      - rc
+
+  rc-worker:
+    build:
+      context: .
+      dockerfile: ./rc_service/Dockerfile
+    restart: on-failure
+    networks:
+      - rc
+    depends_on:
+      - mysql
+      - rabbitmq
+    deploy:
+      mode: replicated
+      replicas: 2
+
+  rc-client:
+    container_name: rc_client
+    build:
+      context: .
+      dockerfile: ./rc_client/Dockerfile
+    networks:
+      - rc
+    depends_on:
+      - mysql
+      - rabbitmq
+
+  flower:
+    image: mher/flower
+    environment:
+      CELERY_BROKER_URL: pyamqp://animewallpaperbot:${RABBITMQ_PASS?err}@rc_rabbitmq//
+      FLOWER_PORT: 8888
+    ports:
+      - "8888:8888"
+    networks:
+      - rc
+    depends_on:
+      - rc-worker
+      - rabbitmq
+
+volumes:
+  mysql:
+  rabbitmq:
+
+networks:
+  rc:
+    driver: bridge
