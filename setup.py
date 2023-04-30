@@ -7,12 +7,12 @@ import cv2
 from aiohttp import ClientSession
 from aiohttp_retry import RetryClient
 
-from rc_service.matcher import build_descriptors
+from rc_service.matcher import build_descriptors, build_descriptors2
 from utils import database_ctx, get_mysql_auth
 
 images_dir = "images"
 
-image_size = 128
+image_size = 256
 
 mysql_auth = get_mysql_auth()
 
@@ -29,7 +29,8 @@ async def download_image(image_id, url, client_session):
                 print(f"Could not download {url}, got: {response.status}")
                 return None, image_id
             image_bytes = await response.content.read()
-            return build_descriptors(BytesIO(image_bytes), size=image_size), image_id
+            return build_descriptors(BytesIO(image_bytes), size=image_size), image_id  # SIFT
+            # return build_descriptors2(BytesIO(image_bytes), size=image_size), image_id  # ORB
     except Exception as e:
         print(f"Could not download {url}, got: {e}")
         return None, image_id
@@ -43,7 +44,6 @@ async def download_images(images_sql_rows):
 
 
 if __name__ == "__main__":
-    sift_detector = cv2.SIFT_create()
     start_time = time.time()
     with database_ctx(mysql_auth) as db:
         db.execute('SELECT i.id, i.url '

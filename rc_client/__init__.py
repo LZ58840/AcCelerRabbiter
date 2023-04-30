@@ -19,12 +19,45 @@ async def query_async(submission_id, subreddit):
     while not result.ready():
         await asyncio.sleep(1)
     value = result.get()
-    print(f"{result.id}: {value} ({time.time() - time_start} seconds)")
+    print(f"{result.id}: {value} ({time.time() - time_start:.2f} seconds)")
+
+
+async def query2_async(id1, id2):
+    time_start = time.time()
+    result = app.send_task('compare_two_images', (id1, id2))
+    while not result.ready():
+        await asyncio.sleep(1)
+    value = result.get()
+    print(f"{result.id}: {value} ({time.time() - time_start:.2f} seconds)")
+
+
+async def query3_async(submission_id, subreddit):
+    result = app.send_task('check_this_image_hnsw', (submission_id, subreddit))
+    while not result.ready():
+        await asyncio.sleep(1)
+    value = result.get()
+    print(value)
 
 
 async def run_queries(ids):
     tasks = [
         asyncio.create_task(query_async(sub_id, 'Animewallpaper'))
+        for sub_id in ids
+    ]
+    await asyncio.gather(*tasks)
+
+
+async def run_queries2(id_pairs):
+    tasks = [
+        asyncio.create_task(query2_async(id1, id2))
+        for id1, id2 in id_pairs
+    ]
+    await asyncio.gather(*tasks)
+
+
+async def run_queries3(ids):
+    tasks = [
+        asyncio.create_task(query3_async(sub_id, 'Animewallpaper'))
         for sub_id in ids
     ]
     await asyncio.gather(*tasks)

@@ -30,6 +30,7 @@ def get_mysql_auth(docker=DOCKER):
             "user": "animewallpaperbot",
             "password": os.environ['MYSQL_PASS'],
             "db": "awb",
+            "port": 3306 if docker else 3307
         }
 
     except KeyError as e:
@@ -43,6 +44,7 @@ def get_mysql_root_auth(docker=DOCKER):
             "user": "root",
             "password": os.environ['MYSQL_ROOT_PASS'],
             "db": "awb",
+            "port": 3306 if docker else 3307
         }
 
     except KeyError as e:
